@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: lambda-pytorch
+
+Resources:
+  InferenceFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      PackageType: Image
+      Timeout: 60
+      MemorySize: 3008
+      Events:
+        HelloWorld:
+          Type: HttpApi 
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./inference
+      DockerTag: python3.8-v1
+
+Outputs:
+  InferenceApi:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
