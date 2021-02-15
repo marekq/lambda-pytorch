@@ -8,14 +8,14 @@ Resources:
     Properties:
       Tracing: Active
       PackageType: Image
-      Timeout: 60
+      Timeout: 30
       MemorySize: 1792 
       Events:
         HelloWorld:
           Type: HttpApi 
           Properties:
             Path: /inference
-            Method: post
+            Method: any
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./inference
