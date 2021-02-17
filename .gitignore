@@ -1,2 +1,6 @@
-.aws-sam/
-samconfig.toml
+node_modules/
+package-lock.json
+cdk/
+cdk.out/
+*/model/*
+yarn.lock
