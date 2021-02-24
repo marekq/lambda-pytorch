@@ -10,9 +10,9 @@ RUN wget -q https://huggingface.co/distilbert-base-uncased-finetuned-sst-2-engli
 RUN wget -q https://huggingface.co/distilbert-base-uncased-finetuned-sst-2-english/resolve/main/vocab.txt -O ./model/vocab.txt
 
 # install requirements
-COPY requirements.txt ./
 RUN /var/lang/bin/python3.8 -m pip install --upgrade pip
-RUN python3.8 -m pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ./
+RUN /var/lang/bin/python3.8 -m pip install --no-cache-dir -r requirements.txt
 
 # copy lambda code
 COPY app.py ./
