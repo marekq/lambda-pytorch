@@ -16,40 +16,47 @@ export class CDKML extends cdk.Stack {
     const distilbertLambda = new Lambda.DockerImageFunction(this, "distilbert", {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
       tracing: Lambda.Tracing.ACTIVE,
-      memorySize: 1792,
-      timeout: Duration.seconds(60)
+      memorySize: 2048,
+      timeout: Duration.seconds(30),
+      reservedConcurrentExecutions: 3,
+      retryAttempts: 1
     });
 
     // Create API integration for lambda-distilbert
     const distilbertIntegration = new apigatewayv2Integrations.LambdaProxyIntegration({
-      handler: distilbertLambda,
+      handler: distilbertLambda
     });
 
     //////////////////////////////////////
 
-    // Define lambda-bartcnn Docker file
-    const bartcnnDocker = path.join(__dirname, "../lambda-bartcnn");
+    // Define lambda-t5large Docker file
+    const t5largeDocker = path.join(__dirname, "../lambda-t5large");
 
-    // Create Lambda function for lambda-bartcnn
-    const bartcnnLambda = new Lambda.DockerImageFunction(this, "bartcnn", {
-      code: Lambda.DockerImageCode.fromImageAsset(bartcnnDocker),
+    // Create Lambda function for lambda-t5large
+    const t5largeLambda = new Lambda.DockerImageFunction(this, "t5large", {
+      code: Lambda.DockerImageCode.fromImageAsset(t5largeDocker),
       tracing: Lambda.Tracing.ACTIVE,
-      memorySize: 3008,
-      timeout: Duration.seconds(60)
+      memorySize: 10240,
+      timeout: Duration.seconds(30),
+      reservedConcurrentExecutions: 3,
+      retryAttempts: 1
     });
 
     // Create API Gateway
-    const bartcnnIntegration = new apigatewayv2Integrations.LambdaProxyIntegration({
-      handler: bartcnnLambda,
+    const t5largeIntegration = new apigatewayv2Integrations.LambdaProxyIntegration({
+      handler: t5largeLambda
     });
 
-    // Create API routes
+    //////////////////////////////////////
+
+    // Create HTTP API
     const httpApi = new apigatewayv2.HttpApi(this, "InferenceAPI");
 
+    // Create API routes
     httpApi.addRoutes({
-      path: "/bartcnn",
+      path: "/t5large",
       methods: [apigatewayv2.HttpMethod.ANY],
-      integration: bartcnnIntegration
+      integration: t5largeIntegration
     });
 
     httpApi.addRoutes({
@@ -57,5 +64,25 @@ export class CDKML extends cdk.Stack {
       methods: [apigatewayv2.HttpMethod.ANY],
       integration: distilbertIntegration
     });
+
+    // Print API Gateway endpoint
+    new cdk.CfnOutput(this, 'APIGW', {
+      value: httpApi.apiEndpoint
+    });
+
+    //////////////////////////////////////
+
+    const warmerLambda = new Lambda.Function(this, "warmerLambda", {
+      code: new Lambda.AssetCode(path.resolve(__dirname, "../lambda-warmer")),
+      handler: "app.py",
+      runtime: Lambda.Runtime.PYTHON_3_8,
+      tracing: Lambda.Tracing.ACTIVE,
+      memorySize: 256,
+      timeout: Duration.seconds(20),
+      retryAttempts: 1,
+      environment: {
+        'apigw': httpApi.httpApiId
+      }
+    });    
   }
 }

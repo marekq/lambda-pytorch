@@ -4,3 +4,4 @@ cdk/
 cdk.out/
 */model/*
 yarn.lock
+.aws-sam/

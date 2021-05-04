@@ -2,4 +2,4 @@ aws-lambda-powertools
 boto3
 transformers
 -f https://download.pytorch.org/whl/torch_stable.html
-torch==1.7.1+cpu
+torch==1.8.1+cpu

@@ -17,6 +17,7 @@ def handler(event, context):
 
     # get post string
     eventstr = event['body']
+    print(eventstr)
 
     # decode from base64
     base64_bytes = eventstr.encode('ascii')

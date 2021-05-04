@@ -5,7 +5,7 @@ A simple demo application to serve two ML models of Hugging Face from AWS Lambda
 
 The following models can be invoked through API Gateway using the 'make_request' script:
 
-* facebook/bart-large-cnn on API path /bartcnn
+* t5-large on API path /t5-large
 * distilbert-base-uncased-finetuned-sst-2-english on API path /distilbert
 
-The project is in alpha stage with a lot of work to be done. 
+The initial "cold" start for both functions can take a few seconds, but "warm" invocations should complete in 1-2 seconds at most. 
