@@ -3,8 +3,6 @@ import * as cdk from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
 import * as apigatewayv2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-import * as events from '@aws-cdk/aws-events';
-import * as targets from '@aws-cdk/aws-events-targets';
 import { PythonFunction, PythonLayerVersion } from "@aws-cdk/aws-lambda-python";
 import { Duration } from "@aws-cdk/core";
 
@@ -19,10 +17,15 @@ export class CDKML extends cdk.Stack {
     const distilbertLambda = new Lambda.DockerImageFunction(this, "distilbert", {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
       tracing: Lambda.Tracing.ACTIVE,
-      memorySize: 4096,
-      timeout: Duration.seconds(60),
+      memorySize: 2048,
+      timeout: Duration.seconds(30),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
+    });
+
+    // Add provisioned concurrency of 1
+    distilbertLambda.currentVersion.addAlias('live', {
+      provisionedConcurrentExecutions: 1
     });
 
     // Create API integration for lambda-distilbert
@@ -40,9 +43,14 @@ export class CDKML extends cdk.Stack {
       code: Lambda.DockerImageCode.fromImageAsset(t5largeDocker),
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 10240,
-      timeout: Duration.seconds(60),
+      timeout: Duration.seconds(30),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
+    });
+
+    // Add provisioned concurrency of 1
+    t5largeLambda.currentVersion.addAlias('live', {
+      provisionedConcurrentExecutions: 1
     });
 
     // Create API Gateway
@@ -94,16 +102,5 @@ export class CDKML extends cdk.Stack {
         }),
       ]
     });  
-    
-    // Create EventBridge rule that will execute our Lambda every 2 minutes
-    const cronSchedule = new events.Rule(this, 'scheduledLambda', 
-      {
-        schedule: events.Schedule.expression('rate(1 minute)'),
-      }
-    );
-
-    // Set the target of our EventBridge rule to our Lambda function
-    cronSchedule.addTarget(new targets.LambdaFunction(warmerLambda));
-  
   }
 }
