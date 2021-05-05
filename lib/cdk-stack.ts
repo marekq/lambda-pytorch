@@ -3,6 +3,9 @@ import * as cdk from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
 import * as apigatewayv2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
+import * as events from '@aws-cdk/aws-events';
+import * as targets from '@aws-cdk/aws-events-targets';
+import { PythonFunction, PythonLayerVersion } from "@aws-cdk/aws-lambda-python";
 import { Duration } from "@aws-cdk/core";
 
 export class CDKML extends cdk.Stack {
@@ -16,8 +19,8 @@ export class CDKML extends cdk.Stack {
     const distilbertLambda = new Lambda.DockerImageFunction(this, "distilbert", {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
       tracing: Lambda.Tracing.ACTIVE,
-      memorySize: 2048,
-      timeout: Duration.seconds(30),
+      memorySize: 4096,
+      timeout: Duration.seconds(60),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
     });
@@ -37,7 +40,7 @@ export class CDKML extends cdk.Stack {
       code: Lambda.DockerImageCode.fromImageAsset(t5largeDocker),
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 10240,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
     });
@@ -55,7 +58,7 @@ export class CDKML extends cdk.Stack {
     // Create API routes
     httpApi.addRoutes({
       path: "/t5large",
-      methods: [apigatewayv2.HttpMethod.ANY],
+      methods: [apigatewayv2.HttpMethod.POST],
       integration: t5largeIntegration
     });
 
@@ -72,17 +75,35 @@ export class CDKML extends cdk.Stack {
 
     //////////////////////////////////////
 
-    const warmerLambda = new Lambda.Function(this, "warmerLambda", {
-      code: new Lambda.AssetCode(path.resolve(__dirname, "../lambda-warmer")),
-      handler: "app.py",
+    const warmerLambda = new PythonFunction(this, "warmerLambda", {
+      entry: "./lambda-warmer",
+      index: "app.py",
+      handler: "lambda_handler",
       runtime: Lambda.Runtime.PYTHON_3_8,
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 256,
-      timeout: Duration.seconds(20),
+      timeout: Duration.seconds(60),
       retryAttempts: 1,
       environment: {
-        'apigw': httpApi.httpApiId
+        'apigw': httpApi.apiEndpoint
+      },
+      layers: [
+        new PythonLayerVersion(this, 'LambdaLayer', {
+          entry: path.join(__dirname, '../lambda-layer'),
+          compatibleRuntimes: [Lambda.Runtime.PYTHON_3_8],
+        }),
+      ]
+    });  
+    
+    // Create EventBridge rule that will execute our Lambda every 2 minutes
+    const cronSchedule = new events.Rule(this, 'scheduledLambda', 
+      {
+        schedule: events.Schedule.expression('rate(1 minute)'),
       }
-    });    
+    );
+
+    // Set the target of our EventBridge rule to our Lambda function
+    cronSchedule.addTarget(new targets.LambdaFunction(warmerLambda));
+  
   }
 }
