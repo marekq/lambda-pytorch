@@ -18,7 +18,7 @@ export class CDKML extends cdk.Stack {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 2048,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
     });
@@ -43,7 +43,7 @@ export class CDKML extends cdk.Stack {
       code: Lambda.DockerImageCode.fromImageAsset(t5largeDocker),
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 10240,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60),
       reservedConcurrentExecutions: 3,
       retryAttempts: 1
     });
