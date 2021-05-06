@@ -27,11 +27,7 @@ def handler(event, context):
     # analyse sentiment of the submitted text
     rating = pipeline('sentiment-analysis', model = model, tokenizer = tokenizer)(message)
 
-    # print and return message
-    out = str(message) + " " + str(rating)
-    print(out)
-
     return {
         'statusCode': 200,
-        'body': str(out)
+        'body': str(rating)
     }
