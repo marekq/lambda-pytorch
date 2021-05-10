@@ -1,10 +1,12 @@
 import * as path from "path";
 import * as cdk from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
-import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
-import * as apigatewayv2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
+import * as apigateway from "@aws-cdk/aws-apigateway";
+import * as events from '@aws-cdk/aws-events';
+import * as targets from '@aws-cdk/aws-events-targets';
 import { PythonFunction, PythonLayerVersion } from "@aws-cdk/aws-lambda-python";
 import { Duration } from "@aws-cdk/core";
+import { LambdaIntegration } from "@aws-cdk/aws-apigateway";
 
 export class CDKML extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -19,19 +21,16 @@ export class CDKML extends cdk.Stack {
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 2048,
       timeout: Duration.seconds(60),
-      reservedConcurrentExecutions: 3,
+      reservedConcurrentExecutions: 1,
       retryAttempts: 1
     });
 
+    /*
     // Add provisioned concurrency of 1
     distilbertLambda.currentVersion.addAlias('live', {
-      provisionedConcurrentExecutions: 1
+      provisionedConcurrentExecutions: 0
     });
-
-    // Create API integration for lambda-distilbert
-    const distilbertIntegration = new apigatewayv2Integrations.LambdaProxyIntegration({
-      handler: distilbertLambda
-    });
+    */
 
     //////////////////////////////////////
 
@@ -44,42 +43,33 @@ export class CDKML extends cdk.Stack {
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 10240,
       timeout: Duration.seconds(60),
-      reservedConcurrentExecutions: 3,
-      retryAttempts: 1
+      reservedConcurrentExecutions: 1,
+      retryAttempts: 0
     });
 
+    /*
     // Add provisioned concurrency of 1
     t5largeLambda.currentVersion.addAlias('live', {
-      provisionedConcurrentExecutions: 1
+      provisionedConcurrentExecutions: 0
     });
-
-    // Create API Gateway
-    const t5largeIntegration = new apigatewayv2Integrations.LambdaProxyIntegration({
-      handler: t5largeLambda
-    });
+    */
 
     //////////////////////////////////////
 
-    // Create HTTP API
-    const httpApi = new apigatewayv2.HttpApi(this, "InferenceAPI");
-
-    // Create API routes
-    httpApi.addRoutes({
-      path: "/t5large",
-      methods: [apigatewayv2.HttpMethod.POST],
-      integration: t5largeIntegration
+    const api = new apigateway.LambdaRestApi(this, 'myapi', {
+      handler: distilbertLambda,
+      proxy: false
     });
 
-    httpApi.addRoutes({
-      path: "/distilbert",
-      methods: [apigatewayv2.HttpMethod.ANY],
-      integration: distilbertIntegration
-    });
+    api.root.addResource('distilbert').addMethod('POST', new LambdaIntegration(distilbertLambda))
+    api.root.addResource('t5large').addMethod('POST', new LambdaIntegration(t5largeLambda))
 
     // Print API Gateway endpoint
+    /*
     new cdk.CfnOutput(this, 'APIGW', {
-      value: httpApi.apiEndpoint
+      value: api.httpApi
     });
+    */
 
     //////////////////////////////////////
 
@@ -91,9 +81,9 @@ export class CDKML extends cdk.Stack {
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 256,
       timeout: Duration.seconds(60),
-      retryAttempts: 1,
+      retryAttempts: 0,
       environment: {
-        'apigw': httpApi.apiEndpoint
+        'apigw': api.restApiId
       },
       layers: [
         new PythonLayerVersion(this, 'LambdaLayer', {
@@ -102,5 +92,15 @@ export class CDKML extends cdk.Stack {
         }),
       ]
     });  
+
+    // Create EventBridge rule that will execute our Lambda every 2 minutes
+    const cronSchedule = new events.Rule(this, 'scheduledLambda', 
+      {
+        schedule: events.Schedule.expression('rate(1 minute)')
+      }
+    )
+  
+    // Set the target of our EventBridge rule to our Lambda function
+    cronSchedule.addTarget(new targets.LambdaFunction(warmerLambda));
   }
 }

@@ -16,13 +16,8 @@ tokenizer = AutoTokenizer.from_pretrained('./model/', local_files_only = True)
 def handler(event, context):
 
     # get post string
-    eventstr = event['body']
-    print(eventstr)
-
-    # decode from base64
-    base64_bytes = eventstr.encode('ascii')
-    message_bytes = base64.b64decode(base64_bytes)
-    message = message_bytes.decode('ascii')
+    message = event['body']
+    print(message)
 
     # analyse sentiment of the submitted text
     rating = pipeline('sentiment-analysis', model = model, tokenizer = tokenizer)(message)

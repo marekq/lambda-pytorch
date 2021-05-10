@@ -1,20 +1,22 @@
 import requests, sys
 
-apigw_url = 'https://x.execute-api.eu-west-1.amazonaws.com/'
+apigw_url = 'https://x.execute-api.eu-west-1.amazonaws.com/prod/'
 
 # t5large inference
 def t5large_inference(input_str):
 
+    print('\nstarting inference for t5_large...\n')
     r = requests.post(apigw_url + 't5large', data = input_str, timeout = 31)
 
-    print(str(r.elapsed)[5:10] + " sec - t5large - " + str(input_str)[:50] + "...\n\n" + ''.join(r.text).strip() + '\n\n')
+    print(str(r.elapsed)[5:10] + " sec - t5large - " + str(input_str).strip('\n')[:50] + "...\n\n" + ''.join(r.text).strip() + '\n\n')
 
 # distilbert inference
 def distilbert_inference(input_str):
 
+    print('\nstarting inference for distilbert...\n')
     r = requests.post(apigw_url + 'distilbert', data = input_str, timeout = 31)
 
-    print(str(r.elapsed)[5:10] + " sec - distilbert - " + str(input_str)[:50] + "..." + "\n\n" + ''.join(r.text).strip() + '\n\n')
+    print(str(r.elapsed)[5:10] + " sec - distilbert - " + str(input_str).strip('\n')[:50] + "..." + "\n\n" + ''.join(r.text).strip() + '\n\n')
 
 def main():
 
@@ -24,8 +26,6 @@ def main():
 
     # get inference mode from argv $2
     inference_mode = sys.argv[2]
-
-    print('\nstarting inference...\n')
 
     # inference distilbert model
     if inference_mode == "d" or inference_mode == "distilbert":
