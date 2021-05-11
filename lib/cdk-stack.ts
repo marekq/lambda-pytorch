@@ -83,7 +83,7 @@ export class CDKML extends cdk.Stack {
       timeout: Duration.seconds(60),
       retryAttempts: 0,
       environment: {
-        'apigw': api.restApiId
+        'apigw': api.url
       },
       layers: [
         new PythonLayerVersion(this, 'LambdaLayer', {
