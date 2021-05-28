@@ -1,4 +1,4 @@
-import base64, json, sentencepiece, time, torch
+import time
 from transformers import T5Tokenizer, T5ForConditionalGeneration, T5Config
 from aws_lambda_powertools import Logger, Tracer
 
@@ -22,8 +22,7 @@ print('completed model loading in ' + str(round(endts - startts, 2)) + ' seconds
 def handler(event, context):
 
     # get post string
-    #message = event['body']
-    message = 'serverless'
+    message = event['body']
     print(message)
 
     # summarize the text

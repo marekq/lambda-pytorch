@@ -20,9 +20,9 @@ export class CDKML extends cdk.Stack {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 2048,
-      timeout: Duration.seconds(60),
-      reservedConcurrentExecutions: 1,
-      retryAttempts: 1
+      timeout: Duration.seconds(30),
+      reservedConcurrentExecutions: 3,
+      retryAttempts: 0
     });
 
     /*
@@ -43,7 +43,7 @@ export class CDKML extends cdk.Stack {
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 10240,
       timeout: Duration.seconds(60),
-      reservedConcurrentExecutions: 1,
+      reservedConcurrentExecutions: 3,
       retryAttempts: 0
     });
 
@@ -64,13 +64,6 @@ export class CDKML extends cdk.Stack {
     api.root.addResource('distilbert').addMethod('POST', new LambdaIntegration(distilbertLambda))
     api.root.addResource('t5large').addMethod('POST', new LambdaIntegration(t5largeLambda))
 
-    // Print API Gateway endpoint
-    /*
-    new cdk.CfnOutput(this, 'APIGW', {
-      value: api.httpApi
-    });
-    */
-
     //////////////////////////////////////
 
     const warmerLambda = new PythonFunction(this, "warmerLambda", {
@@ -80,7 +73,7 @@ export class CDKML extends cdk.Stack {
       runtime: Lambda.Runtime.PYTHON_3_8,
       tracing: Lambda.Tracing.ACTIVE,
       memorySize: 256,
-      timeout: Duration.seconds(60),
+      timeout: Duration.seconds(59),
       retryAttempts: 0,
       environment: {
         'apigw': api.url

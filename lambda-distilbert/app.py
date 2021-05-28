@@ -1,4 +1,3 @@
-import base64
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
 from aws_lambda_powertools import Logger, Tracer
 
