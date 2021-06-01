@@ -1,6 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.8
 
 # download ML model with wget
+RUN yum upgrade -y
 RUN yum install wget wheel -y
 
 RUN mkdir model

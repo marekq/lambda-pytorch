@@ -1,9 +1,11 @@
 import * as path from "path";
 import * as cdk from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as iam from '@aws-cdk/aws-iam';
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as events from '@aws-cdk/aws-events';
 import * as targets from '@aws-cdk/aws-events-targets';
+import * as profiler from '@aws-cdk/aws-codeguruprofiler';
 import { PythonFunction, PythonLayerVersion } from "@aws-cdk/aws-lambda-python";
 import { Duration } from "@aws-cdk/core";
 import { LambdaIntegration } from "@aws-cdk/aws-apigateway";
@@ -15,6 +17,10 @@ export class CDKML extends cdk.Stack {
     // Define lambda-distilbert Docker file
     const distilbertDocker = path.join(__dirname, "../lambda-distilbert");
 
+    const distilbertProfiler = new profiler.ProfilingGroup(this, 'distilbertProfiler', {
+      computePlatform: profiler.ComputePlatform.AWS_LAMBDA
+    });
+
     // Create Lambda function for lambda-distilbert
     const distilbertLambda = new Lambda.DockerImageFunction(this, "distilbert", {
       code: Lambda.DockerImageCode.fromImageAsset(distilbertDocker),
@@ -22,8 +28,24 @@ export class CDKML extends cdk.Stack {
       memorySize: 2048,
       timeout: Duration.seconds(30),
       reservedConcurrentExecutions: 3,
-      retryAttempts: 0
+      retryAttempts: 0,
+      environment: {
+        AWS_CODEGURU_PROFILER_GROUP_NAME: distilbertProfiler.profilingGroupName,
+        AWS_CODEGURU_PROFILER_GROUP_ARN: distilbertProfiler.profilingGroupArn
+      }
     });
+
+    distilbertLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "codeguru-profiler:ConfigureAgent",
+        "codeguru-profiler:CreateProfilingGroup",
+        "codeguru-profiler:PostAgentProfile"
+      ],
+      resources: ["*"]
+    }));
+
+    distilbertProfiler.grantPublish(distilbertLambda);
 
     /*
     // Add provisioned concurrency of 1
@@ -37,6 +59,10 @@ export class CDKML extends cdk.Stack {
     // Define lambda-t5large Docker file
     const t5largeDocker = path.join(__dirname, "../lambda-t5large");
 
+    const t5Profiler = new profiler.ProfilingGroup(this, 't5Profiler', {
+      computePlatform: profiler.ComputePlatform.AWS_LAMBDA
+    });
+
     // Create Lambda function for lambda-t5large
     const t5largeLambda = new Lambda.DockerImageFunction(this, "t5large", {
       code: Lambda.DockerImageCode.fromImageAsset(t5largeDocker),
@@ -44,8 +70,24 @@ export class CDKML extends cdk.Stack {
       memorySize: 10240,
       timeout: Duration.seconds(60),
       reservedConcurrentExecutions: 3,
-      retryAttempts: 0
+      retryAttempts: 0,
+      environment: {
+        AWS_CODEGURU_PROFILER_GROUP_NAME: t5Profiler.profilingGroupName,
+        AWS_CODEGURU_PROFILER_GROUP_ARN: t5Profiler.profilingGroupArn
+      }
     });
+
+    t5largeLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "codeguru-profiler:ConfigureAgent",
+        "codeguru-profiler:CreateProfilingGroup",
+        "codeguru-profiler:PostAgentProfile"
+      ],
+      resources: ["*"]
+    }));
+
+    t5Profiler.grantPublish(t5largeLambda);
 
     /*
     // Add provisioned concurrency of 1
